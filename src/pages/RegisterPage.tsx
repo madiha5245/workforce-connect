@@ -34,12 +34,12 @@ export function RegisterPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-8">
       <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-primary-700">Workforce Connect</h1>
-          <p className="mt-1 text-sm text-slate-500">India's blue-collar recruitment platform</p>
+        <div className="mb-6 text-center sm:mb-8">
+          <h1 className="text-2xl font-bold tracking-tight text-primary-700">Workforce <span className="text-slate-900">Connect</span></h1>
+          <p className="mt-2 text-sm leading-6 text-slate-500">India&apos;s blue-collar recruitment platform</p>
         </div>
-        <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
-          <h2 className="mb-6 text-xl font-semibold text-slate-900">Create your account</h2>
+        <div className="surface p-5 sm:p-8">
+          <h2 className="mb-6 text-xl font-bold tracking-tight text-slate-950">Create your account</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">
