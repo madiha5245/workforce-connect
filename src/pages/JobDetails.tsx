@@ -297,6 +297,23 @@ export function JobDetailsPage() {
                       Application Approved
                     </button>
                   </div>
+                ) : userApplication.status === 'DISCUSSION' ? (
+                  <div>
+                    <div className="mb-4 rounded-lg bg-indigo-50 px-3 py-2">
+                      <p className="text-sm font-medium text-indigo-700">
+                        ✓ Discussion Started
+                      </p>
+                      <p className="mt-2 text-xs text-indigo-600">
+                        The employer has approved your application and is ready to discuss the work and terms with you.
+                      </p>
+                    </div>
+                    <button
+                      disabled
+                      className="w-full rounded-lg bg-indigo-100 px-4 py-2.5 font-medium text-indigo-700"
+                    >
+                      Discussion Started
+                    </button>
+                  </div>
                 ) : (
                   <div>
                     <div className="mb-4 rounded-lg bg-blue-50 px-3 py-2">
