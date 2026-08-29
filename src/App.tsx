@@ -8,6 +8,7 @@ import { WorkerDashboard } from '@/pages/WorkerDashboard'
 import { WorkerProfilePage } from '@/pages/WorkerProfile'
 import { WorkerBrowseJobs } from '@/pages/WorkerBrowseJobs'
 import { JobDetailsPage } from '@/pages/JobDetails'
+import { WorkerApplicationsPage } from '@/pages/WorkerApplications'
 import { EmployerDashboard } from '@/pages/EmployerDashboard'
 import { EmployerProfilePage } from '@/pages/EmployerProfile'
 import { PostJobPage } from '@/pages/PostJob'
@@ -52,6 +53,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['WORKER']}>
                 <JobDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/worker/applications"
+            element={
+              <ProtectedRoute allowedRoles={['WORKER']}>
+                <WorkerApplicationsPage />
               </ProtectedRoute>
             }
           />
