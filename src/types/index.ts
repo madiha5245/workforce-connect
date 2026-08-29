@@ -26,6 +26,7 @@ export interface WorkerProfile {
   skills: string[] | null
   years_of_experience: number | null
   location: string | null
+  phone: string | null
   availability: string | null
   expected_salary: number | null
   certifications: Certification[] | null

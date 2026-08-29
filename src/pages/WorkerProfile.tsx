@@ -16,6 +16,7 @@ export function WorkerProfilePage() {
     skills: [] as string[],
     years_of_experience: null as number | null,
     location: '',
+    phone: '',
     availability: '',
     expected_salary: null as number | null,
     certifications: [] as Certification[],
@@ -23,6 +24,12 @@ export function WorkerProfilePage() {
 
   const [skillInput, setSkillInput] = useState('')
   const [certInput, setCertInput] = useState({ name: '', issuer: '', year: '' })
+
+  function isValidPhone(phone: string): boolean {
+    if (!phone.trim()) return true
+    const cleaned = phone.replace(/[\s\-\(\)\.]/g, '')
+    return /^\+?[0-9]{7,15}$/.test(cleaned)
+  }
 
   useEffect(() => {
     if (!profile) {
@@ -47,6 +54,7 @@ export function WorkerProfilePage() {
             skills: data.skills || [],
             years_of_experience: data.years_of_experience,
             location: data.location || '',
+            phone: data.phone || '',
             availability: data.availability || '',
             expected_salary: data.expected_salary,
             certifications: data.certifications || [],
@@ -69,6 +77,14 @@ export function WorkerProfilePage() {
     e.preventDefault()
     if (!profile) return
 
+    if (formData.phone && !isValidPhone(formData.phone)) {
+      setMessage({
+        type: 'error',
+        text: 'Please enter a valid phone number (e.g., +91 9876543210 or 9876543210)',
+      })
+      return
+    }
+
     setSaving(true)
     setMessage(null)
 
@@ -81,6 +97,7 @@ export function WorkerProfilePage() {
             skills: formData.skills.length > 0 ? formData.skills : null,
             years_of_experience: formData.years_of_experience,
             location: formData.location || null,
+            phone: formData.phone.trim() || null,
             availability: formData.availability || null,
             expected_salary: formData.expected_salary,
             certifications:
@@ -272,6 +289,26 @@ export function WorkerProfilePage() {
               placeholder="e.g., Mumbai, Maharashtra"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
+          </div>
+
+          {/* Phone Number */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Phone Number</label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  phone: e.target.value,
+                }))
+              }
+              placeholder="e.g., +91 9876543210"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Only shared with employers after your application is approved.
+            </p>
           </div>
 
           {/* Availability */}

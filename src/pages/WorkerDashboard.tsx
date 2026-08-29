@@ -68,6 +68,7 @@ export function WorkerDashboard() {
               }
             />
             <Field label="Location" value={workerProfile.location ?? 'Not set'} />
+            <Field label="Phone" value={workerProfile.phone ?? 'Not set'} />
             <Field label="Availability" value={workerProfile.availability ?? 'Not set'} />
             <Field
               label="Expected Salary"
