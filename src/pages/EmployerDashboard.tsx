@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
 import { AppLayout } from '@/components/AppLayout'
-import type { CompanyProfile, Job } from '@/types'
+import type { Application, CompanyProfile, Job } from '@/types'
 
 export function EmployerDashboard() {
   const { profile } = useAuth()
   const [company, setCompany] = useState<CompanyProfile | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
+  const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -24,7 +25,18 @@ export function EmployerDashboard() {
         supabase.from('jobs').select('*').eq('employer_id', profileId).order('created_at', { ascending: false }),
       ])
       setCompany(companyData as CompanyProfile | null)
-      setJobs((jobsData as Job[]) ?? [])
+      const employerJobs = (jobsData as Job[]) ?? []
+      setJobs(employerJobs)
+
+      if (employerJobs.length > 0) {
+        const { data: applicationsData } = await supabase
+          .from('applications')
+          .select('*')
+          .in('job_id', employerJobs.map((job) => job.id))
+        setApplications((applicationsData as Application[]) ?? [])
+      } else {
+        setApplications([])
+      }
       setLoading(false)
     }
     load()
@@ -39,10 +51,11 @@ export function EmployerDashboard() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-4">
         <StatCard label="Posted Jobs" value={loading ? '...' : `${jobs.length}`} />
-        <StatCard label="Active Jobs" value={loading ? '...' : `${jobs.filter((j) => j.is_active).length}`} />
-        <StatCard label="Company Profile" value={company ? 'Complete' : 'Not set up'} />
+        <StatCard label="Pending Jobs" value={loading ? '...' : `${countJobsWithStatus(jobs, applications, 'APPLIED')}`} />
+        <StatCard label="Active Jobs" value={loading ? '...' : `${countJobsWithStatus(jobs, applications, 'APPROVED')}`} />
+        <StatCard label="Completed Jobs" value={loading ? '...' : `${countJobsWithStatus(jobs, applications, 'COMPLETED')}`} />
       </div>
 
       <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
@@ -126,6 +139,24 @@ export function EmployerDashboard() {
       </div>
     </AppLayout>
   )
+}
+
+function countJobsWithStatus(
+  jobs: Job[],
+  applications: Application[],
+  status: Application['status']
+): number {
+  const activeJobIds = new Set(jobs.filter((job) => job.is_active).map((job) => job.id))
+
+  return new Set(
+    applications
+      .filter(
+        (application) =>
+          application.status === status &&
+          (status === 'COMPLETED' || activeJobIds.has(application.job_id))
+      )
+      .map((application) => application.job_id)
+  ).size
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {

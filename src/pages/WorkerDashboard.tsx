@@ -130,8 +130,9 @@ export function WorkerDashboard() {
   )
 }
 
-function formatRating(rating: number): string {
-  return Number(rating).toFixed(1)
+function formatRating(rating: number | string | null | undefined): string {
+  const numericRating = Number(rating)
+  return Number.isFinite(numericRating) ? numericRating.toFixed(1) : '0.0'
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {

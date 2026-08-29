@@ -299,7 +299,7 @@ function ApplicantCard({
       })
       setTimeout(() => setApprovalMessage(null), 3000)
     } catch (err) {
-      setCompletionError(err instanceof Error ? err.message : 'Failed to complete and rate work')
+      setCompletionError(getSupabaseErrorMessage(err))
     } finally {
       setSubmittingCompletion(false)
     }
@@ -610,6 +610,19 @@ function RatingField({ label, value }: { label: string; value: number }) {
   )
 }
 
-function formatRating(rating: number): string {
-  return Number(rating).toFixed(1)
+function formatRating(rating: number | string | null | undefined): string {
+  const numericRating = Number(rating)
+  return Number.isFinite(numericRating) ? numericRating.toFixed(1) : '0.0'
+}
+
+function getSupabaseErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = error.message
+    const code = 'code' in error ? error.code : undefined
+    if (typeof message === 'string') {
+      return typeof code === 'string' ? `${message} (${code})` : message
+    }
+  }
+
+  return error instanceof Error ? error.message : 'Failed to complete and rate work'
 }
