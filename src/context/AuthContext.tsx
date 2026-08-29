@@ -60,6 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function signUp(email: string, password: string, role: UserRole, fullName: string) {
+    if (role !== 'WORKER' && role !== 'EMPLOYER') {
+      throw new Error('Signup is limited to worker and employer accounts')
+    }
     const { error } = await supabase.auth.signUp({
       email,
       password,

@@ -25,8 +25,18 @@ export function ProtectedRoute({
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
-    return <Navigate to={getDashboardPath(profile.role)} replace />
+  if (allowedRoles) {
+    if (!profile) {
+      return (
+        <div className="flex h-screen flex-col items-center justify-center gap-2 px-4">
+          <p className="text-sm font-medium text-slate-700">Unable to load your profile</p>
+          <p className="text-sm text-slate-500">You cannot access this page until your profile is available.</p>
+        </div>
+      )
+    }
+    if (!allowedRoles.includes(profile.role)) {
+      return <Navigate to={getDashboardPath(profile.role)} replace />
+    }
   }
 
   return <>{children}</>
