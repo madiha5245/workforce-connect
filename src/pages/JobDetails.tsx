@@ -5,6 +5,12 @@ import { useAuth } from '@/context/AuthContext'
 import { AppLayout } from '@/components/AppLayout'
 import type { Job, Application } from '@/types'
 
+interface EmployerContactInfo {
+  companyName: string | null
+  phone: string | null
+  email: string | null
+}
+
 export function JobDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -15,6 +21,7 @@ export function JobDetailsPage() {
   const [applying, setApplying] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [userApplication, setUserApplication] = useState<Application | null>(null)
+  const [employerContact, setEmployerContact] = useState<EmployerContactInfo | null>(null)
   const [checkingApplication, setCheckingApplication] = useState(false)
 
   useEffect(() => {
@@ -48,7 +55,8 @@ export function JobDetailsPage() {
           return
         }
 
-        setJob(jobData as Job)
+        const jobRecord = jobData as Job
+        setJob(jobRecord)
 
         // Check if user has already applied
         setCheckingApplication(true)
@@ -66,7 +74,30 @@ export function JobDetailsPage() {
         if (appError) {
           console.error('Error checking application:', appError)
         } else if (appData) {
-          setUserApplication(appData as Application)
+          const app = appData as Application
+          setUserApplication(app)
+
+          // If approved, fetch employer contact details
+          if (app.status === 'APPROVED' && jobRecord.employer_id) {
+            const [{ data: empProf }, { data: compProf }] = await Promise.all([
+              supabase
+                .from('profiles')
+                .select('email, phone')
+                .eq('id', jobRecord.employer_id)
+                .maybeSingle(),
+              supabase
+                .from('company_profiles')
+                .select('company_name')
+                .eq('profile_id', jobRecord.employer_id)
+                .maybeSingle(),
+            ])
+
+            setEmployerContact({
+              companyName: compProf?.company_name || null,
+              phone: empProf?.phone || null,
+              email: empProf?.email || null,
+            })
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load job details')
@@ -281,38 +312,39 @@ export function JobDetailsPage() {
             ) : userApplication ? (
               <div>
                 {userApplication.status === 'APPROVED' ? (
-                  <div>
-                    <div className="mb-4 rounded-lg bg-green-50 px-3 py-2">
-                      <p className="text-sm font-medium text-green-700">
-                        ✓ Application Approved
-                      </p>
-                      <p className="mt-2 text-xs text-green-600">
-                        The employer has approved your application. You can now proceed to the next stage.
-                      </p>
-                    </div>
+                  <div className="space-y-4">
                     <button
                       disabled
                       className="w-full rounded-lg bg-green-100 px-4 py-2.5 font-medium text-green-700"
                     >
                       Application Approved
                     </button>
-                  </div>
-                ) : userApplication.status === 'DISCUSSION' ? (
-                  <div>
-                    <div className="mb-4 rounded-lg bg-indigo-50 px-3 py-2">
-                      <p className="text-sm font-medium text-indigo-700">
-                        ✓ Discussion Started
+
+                    <div className="rounded-lg bg-green-50 p-4 text-sm">
+                      <p className="text-slate-700">
+                        The employer has approved your application. You can now contact the employer to discuss the work.
                       </p>
-                      <p className="mt-2 text-xs text-indigo-600">
-                        The employer has approved your application and is ready to discuss the work and terms with you.
-                      </p>
+
+                      <div className="mt-4 border-t border-green-200/60 pt-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-green-800">
+                          EMPLOYER CONTACT
+                        </p>
+                        <div className="mt-2 space-y-1.5 text-xs text-slate-700">
+                          <p>
+                            <span className="font-medium text-slate-900">Company:</span>{' '}
+                            {employerContact?.companyName || 'Not specified'}
+                          </p>
+                          <p>
+                            <span className="font-medium text-slate-900">Phone:</span>{' '}
+                            {employerContact?.phone || 'Not specified'}
+                          </p>
+                          <p>
+                            <span className="font-medium text-slate-900">Email:</span>{' '}
+                            {employerContact?.email || 'Not specified'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      disabled
-                      className="w-full rounded-lg bg-indigo-100 px-4 py-2.5 font-medium text-indigo-700"
-                    >
-                      Discussion Started
-                    </button>
                   </div>
                 ) : (
                   <div>

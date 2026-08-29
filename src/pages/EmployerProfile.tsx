@@ -17,7 +17,14 @@ export function EmployerProfilePage() {
     industry: '',
     location: '',
     website: '',
+    phone: '',
   })
+
+  function isValidPhone(phone: string): boolean {
+    if (!phone.trim()) return true
+    const cleaned = phone.replace(/[\s\-\(\)\.]/g, '')
+    return /^\+?[0-9]{7,15}$/.test(cleaned)
+  }
 
   useEffect(() => {
     if (!profile) {
@@ -29,27 +36,38 @@ export function EmployerProfilePage() {
       if (!profile) return
       setLoading(true)
       try {
-        const { data, error } = await supabase
-          .from('company_profiles')
-          .select('*')
-          .eq('profile_id', profile.id)
-          .maybeSingle()
+        const [{ data: companyData, error: companyError }, { data: profileData, error: profileError }] =
+          await Promise.all([
+            supabase
+              .from('company_profiles')
+              .select('*')
+              .eq('profile_id', profile.id)
+              .maybeSingle(),
+            supabase
+              .from('profiles')
+              .select('phone')
+              .eq('id', profile.id)
+              .maybeSingle(),
+          ])
 
-        if (error) throw error
+        if (companyError) throw companyError
+        if (profileError) throw profileError
 
-        if (data) {
-          setFormData({
-            company_name: data.company_name || '',
-            description: data.description || '',
-            industry: data.industry || '',
-            location: data.location || '',
-            website: data.website || '',
-          })
-        }
-      } catch (err) {
+        setFormData({
+          company_name: companyData?.company_name || '',
+          description: companyData?.description || '',
+          industry: companyData?.industry || '',
+          location: companyData?.location || '',
+          website: companyData?.website || '',
+          phone: profileData?.phone ?? profile.phone ?? '',
+        })
+      } catch (err: any) {
+        const errorMsg =
+          err?.message ||
+          (err instanceof Error ? err.message : 'Failed to load company profile')
         setMessage({
           type: 'error',
-          text: err instanceof Error ? err.message : 'Failed to load company profile',
+          text: errorMsg,
         })
       } finally {
         setLoading(false)
@@ -63,11 +81,30 @@ export function EmployerProfilePage() {
     e.preventDefault()
     if (!profile) return
 
+    if (formData.phone && !isValidPhone(formData.phone)) {
+      setMessage({
+        type: 'error',
+        text: 'Please enter a valid phone number (e.g., +91 9876543210 or 9876543210)',
+      })
+      return
+    }
+
     setSaving(true)
     setMessage(null)
 
     try {
-      const { error } = await supabase
+      // 1. Update phone in profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          phone: formData.phone.trim() || null,
+        })
+        .eq('id', profile.id)
+
+      if (profileError) throw profileError
+
+      // 2. Upsert company profile details
+      const { error: companyError } = await supabase
         .from('company_profiles')
         .upsert(
           {
@@ -83,7 +120,7 @@ export function EmployerProfilePage() {
         .select()
         .single()
 
-      if (error) throw error
+      if (companyError) throw companyError
 
       setMessage({
         type: 'success',
@@ -92,10 +129,13 @@ export function EmployerProfilePage() {
 
       // Clear message after 3 seconds
       setTimeout(() => setMessage(null), 3000)
-    } catch (err) {
+    } catch (err: any) {
+      const errorMsg =
+        err?.message ||
+        (err instanceof Error ? err.message : 'Failed to save company profile')
       setMessage({
         type: 'error',
-        text: err instanceof Error ? err.message : 'Failed to save company profile',
+        text: errorMsg,
       })
     } finally {
       setSaving(false)
@@ -205,6 +245,23 @@ export function EmployerProfilePage() {
                 }))
               }
               placeholder="e.g., Mumbai, Maharashtra"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            />
+          </div>
+
+          {/* Phone Number */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Phone Number</label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  phone: e.target.value,
+                }))
+              }
+              placeholder="e.g., +91 9876543210"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
           </div>

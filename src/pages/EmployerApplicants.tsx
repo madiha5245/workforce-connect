@@ -200,7 +200,6 @@ function ApplicantCard({
 }) {
   const { application, workerProfile, profile } = applicant
   const [approving, setApproving] = useState(false)
-  const [startingDiscussion, setStartingDiscussion] = useState(false)
   const [approvalMessage, setApprovalMessage] = useState<{
     type: 'success' | 'error'
     text: string
@@ -242,50 +241,12 @@ function ApplicantCard({
     }
   }
 
-  async function handleStartDiscussion() {
-    setStartingDiscussion(true)
-    setApprovalMessage(null)
-
-    try {
-      const { data, error } = await supabase
-        .from('applications')
-        .update({ status: 'DISCUSSION' })
-        .eq('id', application.id)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      setApprovalMessage({
-        type: 'success',
-        text: 'Discussion started successfully.',
-      })
-
-      // Update parent state with the updated application
-      if (data) {
-        onApprovalStatusChange(data as Application)
-      }
-
-      // Clear message after 3 seconds
-      setTimeout(() => setApprovalMessage(null), 3000)
-    } catch (err) {
-      setApprovalMessage({
-        type: 'error',
-        text: err instanceof Error ? err.message : 'Failed to start discussion',
-      })
-    } finally {
-      setStartingDiscussion(false)
-    }
-  }
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'APPLIED':
         return 'bg-blue-50 text-blue-700'
       case 'APPROVED':
         return 'bg-green-50 text-green-700'
-      case 'DISCUSSION':
-        return 'bg-indigo-50 text-indigo-700'
       case 'SHORTLISTED':
         return 'bg-purple-50 text-purple-700'
       case 'INTERVIEW':
@@ -310,7 +271,7 @@ function ApplicantCard({
     })
   }
 
-  const showContactInfo = application.status === 'APPROVED' || application.status === 'DISCUSSION'
+  const showContactInfo = application.status === 'APPROVED'
 
   return (
     <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
@@ -364,19 +325,10 @@ function ApplicantCard({
           {application.status === 'APPLIED' && (
             <button
               onClick={handleApprove}
-              disabled={approving || startingDiscussion}
+              disabled={approving}
               className="rounded-lg bg-primary-600 px-3 py-1 text-xs font-medium text-white hover:bg-primary-700 disabled:opacity-50"
             >
               {approving ? 'Approving...' : 'Approve'}
-            </button>
-          )}
-          {application.status === 'APPROVED' && (
-            <button
-              onClick={handleStartDiscussion}
-              disabled={approving || startingDiscussion}
-              className="rounded-lg bg-primary-600 px-3 py-1 text-xs font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-            >
-              {startingDiscussion ? 'Starting Discussion...' : 'Start Discussion'}
             </button>
           )}
         </div>
