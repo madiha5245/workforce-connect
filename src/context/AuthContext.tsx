@@ -8,7 +8,7 @@ interface AuthContextValue {
   profile: Profile | null
   loading: boolean
   signUp: (email: string, password: string, role: UserRole, fullName: string) => Promise<void>
-  signIn: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string) => Promise<Profile>
   signOut: () => Promise<void>
 }
 
@@ -19,7 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  async function loadProfile(userId: string) {
+  async function loadProfile(userId: string): Promise<Profile | null> {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -28,9 +28,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error('Failed to load profile:', error.message)
-      return
+      return null
     }
-    setProfile(data as Profile | null)
+    const loadedProfile = data as Profile | null
+    setProfile(loadedProfile)
+    return loadedProfile
   }
 
   useEffect(() => {
@@ -73,9 +75,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error
   }
 
-  async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
+  async function signIn(email: string, password: string): Promise<Profile> {
+    setLoading(true)
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      setLoading(false)
+      throw error
+    }
+
+    if (!data.session?.user) {
+      setLoading(false)
+      throw new Error('Sign-in completed without an active session')
+    }
+
+    setSession(data.session)
+    const loadedProfile = await loadProfile(data.session.user.id)
+    setLoading(false)
+
+    if (!loadedProfile) {
+      throw new Error('Unable to load your profile after sign-in')
+    }
+
+    return loadedProfile
   }
 
   async function signOut() {

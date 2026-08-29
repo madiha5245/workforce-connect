@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { getDashboardPath } from '@/components/ProtectedRoute'
 
 export function LoginPage() {
   const { signIn } = useAuth()
@@ -15,8 +16,8 @@ export function LoginPage() {
     setError(null)
     setSubmitting(true)
     try {
-      await signIn(email, password)
-      navigate('/')
+      const profile = await signIn(email, password)
+      navigate(getDashboardPath(profile.role), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in')
     } finally {
