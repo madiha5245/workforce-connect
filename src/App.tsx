@@ -11,6 +11,7 @@ import { JobDetailsPage } from '@/pages/JobDetails'
 import { EmployerDashboard } from '@/pages/EmployerDashboard'
 import { EmployerProfilePage } from '@/pages/EmployerProfile'
 import { PostJobPage } from '@/pages/PostJob'
+import { EmployerApplicantsPage } from '@/pages/EmployerApplicants'
 import { AdminDashboard } from '@/pages/AdminDashboard'
 
 export default function App() {
@@ -75,6 +76,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['EMPLOYER']}>
                 <PostJobPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employer/jobs/:id/applicants"
+            element={
+              <ProtectedRoute allowedRoles={['EMPLOYER']}>
+                <EmployerApplicantsPage />
               </ProtectedRoute>
             }
           />

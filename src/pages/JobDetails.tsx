@@ -280,20 +280,44 @@ export function JobDetailsPage() {
               <p className="text-sm text-slate-500">Checking application status...</p>
             ) : userApplication ? (
               <div>
-                <div className="mb-4 rounded-lg bg-green-50 px-3 py-2">
-                  <p className="text-sm font-medium text-green-700">
-                    ✓ You have already applied
-                  </p>
-                  <p className="mt-1 text-xs text-green-600">
-                    Applied {formatDate(userApplication.created_at)}
-                  </p>
-                </div>
-                <button
-                  disabled
-                  className="w-full rounded-lg bg-slate-100 px-4 py-2.5 font-medium text-slate-500"
-                >
-                  Already Applied
-                </button>
+                {userApplication.status === 'APPROVED' ? (
+                  <div>
+                    <div className="mb-4 rounded-lg bg-green-50 px-3 py-2">
+                      <p className="text-sm font-medium text-green-700">
+                        ✓ Application Approved
+                      </p>
+                      <p className="mt-2 text-xs text-green-600">
+                        The employer has approved your application. You can now proceed to the next stage.
+                      </p>
+                    </div>
+                    <button
+                      disabled
+                      className="w-full rounded-lg bg-green-100 px-4 py-2.5 font-medium text-green-700"
+                    >
+                      Application Approved
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="mb-4 rounded-lg bg-blue-50 px-3 py-2">
+                      <p className="text-sm font-medium text-blue-700">
+                        ✓ You have already applied
+                      </p>
+                      <p className="mt-1 text-xs text-blue-600">
+                        Status: {userApplication.status}
+                      </p>
+                      <p className="mt-1 text-xs text-blue-600">
+                        Applied {formatDate(userApplication.created_at)}
+                      </p>
+                    </div>
+                    <button
+                      disabled
+                      className="w-full rounded-lg bg-slate-100 px-4 py-2.5 font-medium text-slate-500"
+                    >
+                      Already Applied
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button

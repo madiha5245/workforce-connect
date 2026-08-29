@@ -1,0 +1,391 @@
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/context/AuthContext'
+import { AppLayout } from '@/components/AppLayout'
+import type { Job, Application, Profile, WorkerProfile, Certification } from '@/types'
+
+interface ApplicantData {
+  application: Application
+  workerProfile: WorkerProfile | null
+  profile: Profile | null
+}
+
+export function EmployerApplicantsPage() {
+  const { id: jobId } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { profile: currentProfile } = useAuth()
+  const [job, setJob] = useState<Job | null>(null)
+  const [applicants, setApplicants] = useState<ApplicantData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!jobId || !currentProfile) {
+      setLoading(false)
+      return
+    }
+
+    async function loadData() {
+      setLoading(true)
+      setError(null)
+
+      try {
+        // Fetch the job
+        const { data: jobData, error: jobError } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('id', jobId)
+          .maybeSingle()
+
+        if (jobError) throw jobError
+
+        if (!jobData) {
+          setError('Job not found')
+          setJob(null)
+          return
+        }
+
+        const jobRecord = jobData as Job
+
+        // Verify that the current user owns this job
+        if (!currentProfile || jobRecord.employer_id !== currentProfile.id) {
+          setError('You do not have permission to view applicants for this job')
+          setJob(jobRecord)
+          return
+        }
+
+        setJob(jobRecord)
+
+        // Fetch applications for this job
+        const { data: applicationsData, error: appError } = await supabase
+          .from('applications')
+          .select('*')
+          .eq('job_id', jobId)
+          .order('created_at', { ascending: false })
+
+        if (appError) throw appError
+
+        const applications = (applicationsData as Application[]) || []
+
+        // For each application, fetch worker profile and profile data
+        const applicantDataList: ApplicantData[] = []
+
+        for (const app of applications) {
+          try {
+            const [{ data: workerProfileData }, { data: profileData }] = await Promise.all([
+              supabase
+                .from('worker_profiles')
+                .select('*')
+                .eq('profile_id', app.worker_id)
+                .maybeSingle(),
+              supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', app.worker_id)
+                .maybeSingle(),
+            ])
+
+            applicantDataList.push({
+              application: app,
+              workerProfile: (workerProfileData as WorkerProfile) || null,
+              profile: (profileData as Profile) || null,
+            })
+          } catch (err) {
+            console.error('Error fetching applicant data:', err)
+            applicantDataList.push({
+              application: app,
+              workerProfile: null,
+              profile: null,
+            })
+          }
+        }
+
+        setApplicants(applicantDataList)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load applicants')
+        setJob(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [jobId, currentProfile])
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="mb-8">
+          <button
+            onClick={() => navigate('/employer')}
+            className="mb-4 text-sm font-medium text-primary-600 hover:text-primary-700"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+          <p className="text-sm text-slate-500">Loading applicants...</p>
+        </div>
+      </AppLayout>
+    )
+  }
+
+  if (error || !job) {
+    return (
+      <AppLayout>
+        <div className="mb-8">
+          <button
+            onClick={() => navigate('/employer')}
+            className="mb-4 text-sm font-medium text-primary-600 hover:text-primary-700"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+          <p className="text-sm text-error-600">{error || 'Job not found'}</p>
+        </div>
+      </AppLayout>
+    )
+  }
+
+  return (
+    <AppLayout>
+      <div className="mb-8">
+        <button
+          onClick={() => navigate('/employer')}
+          className="mb-4 text-sm font-medium text-primary-600 hover:text-primary-700"
+        >
+          ← Back to Dashboard
+        </button>
+        <h1 className="text-3xl font-bold text-slate-900">Applicants for {job.title}</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          {applicants.length} application{applicants.length !== 1 ? 's' : ''}
+        </p>
+      </div>
+
+      {applicants.length === 0 ? (
+        <div className="rounded-2xl bg-white p-12 text-center shadow-sm ring-1 ring-slate-200">
+          <p className="text-sm text-slate-500">No applications yet for this job.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {applicants.map((applicant) => (
+            <ApplicantCard
+              key={applicant.application.id}
+              applicant={applicant}
+              onApprovalStatusChange={(updatedApp) => {
+                setApplicants((prev) =>
+                  prev.map((app) =>
+                    app.application.id === updatedApp.id
+                      ? { ...app, application: updatedApp }
+                      : app
+                  )
+                )
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </AppLayout>
+  )
+}
+
+function ApplicantCard({
+  applicant,
+  onApprovalStatusChange,
+}: {
+  applicant: ApplicantData
+  onApprovalStatusChange: (updatedApp: Application) => void
+}) {
+  const { application, workerProfile, profile } = applicant
+  const [approving, setApproving] = useState(false)
+  const [approvalMessage, setApprovalMessage] = useState<{
+    type: 'success' | 'error'
+    text: string
+  } | null>(null)
+
+  async function handleApprove() {
+    setApproving(true)
+    setApprovalMessage(null)
+
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .update({ status: 'APPROVED' })
+        .eq('id', application.id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setApprovalMessage({
+        type: 'success',
+        text: 'Application approved successfully.',
+      })
+
+      // Update parent state with the updated application
+      if (data) {
+        onApprovalStatusChange(data as Application)
+      }
+
+      // Clear message after 3 seconds
+      setTimeout(() => setApprovalMessage(null), 3000)
+    } catch (err) {
+      setApprovalMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Failed to approve application',
+      })
+    } finally {
+      setApproving(false)
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'APPLIED':
+        return 'bg-blue-50 text-blue-700'
+      case 'APPROVED':
+        return 'bg-green-50 text-green-700'
+      case 'SHORTLISTED':
+        return 'bg-purple-50 text-purple-700'
+      case 'INTERVIEW':
+        return 'bg-orange-50 text-orange-700'
+      case 'HIRED':
+        return 'bg-emerald-50 text-emerald-700'
+      case 'REJECTED':
+        return 'bg-red-50 text-red-700'
+      default:
+        return 'bg-slate-50 text-slate-700'
+    }
+  }
+
+  const formatDate = (dateStr: string): string => {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  return (
+    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+      {approvalMessage && (
+        <div
+          className={`mb-4 rounded-lg px-4 py-3 text-sm ${
+            approvalMessage.type === 'success'
+              ? 'bg-green-50 text-green-700'
+              : 'bg-error-50 text-error-600'
+          }`}
+        >
+          {approvalMessage.text}
+        </div>
+      )}
+
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900">
+            {profile?.full_name || 'Unknown Worker'}
+          </h3>
+          {profile?.email && (
+            <p className="text-sm text-slate-500">{profile.email}</p>
+          )}
+          <p className="text-xs text-slate-400">Applied {formatDate(application.created_at)}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(
+              application.status
+            )}`}
+          >
+            {application.status}
+          </span>
+          {application.status === 'APPLIED' && (
+            <button
+              onClick={handleApprove}
+              disabled={approving}
+              className="rounded-lg bg-primary-600 px-3 py-1 text-xs font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+            >
+              {approving ? 'Approving...' : 'Approve'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="mb-4 grid gap-4 sm:grid-cols-2">
+        {workerProfile?.location && (
+          <div>
+            <p className="text-xs font-medium uppercase text-slate-400">Location</p>
+            <p className="mt-1 text-sm text-slate-900">{workerProfile.location}</p>
+          </div>
+        )}
+
+        {workerProfile?.years_of_experience != null && (
+          <div>
+            <p className="text-xs font-medium uppercase text-slate-400">Experience</p>
+            <p className="mt-1 text-sm text-slate-900">
+              {workerProfile.years_of_experience} years
+            </p>
+          </div>
+        )}
+
+        {workerProfile?.verification_status && (
+          <div>
+            <p className="text-xs font-medium uppercase text-slate-400">Verification</p>
+            <p className="mt-1 text-sm text-slate-900">{workerProfile.verification_status}</p>
+          </div>
+        )}
+
+        {workerProfile?.rating != null && (
+          <div>
+            <p className="text-xs font-medium uppercase text-slate-400">Rating</p>
+            <p className="mt-1 text-sm text-slate-900">
+              {workerProfile.rating} ({workerProfile.rating_count} reviews)
+            </p>
+          </div>
+        )}
+      </div>
+
+      {workerProfile?.skills && workerProfile.skills.length > 0 && (
+        <div className="mb-4">
+          <p className="mb-2 text-xs font-medium uppercase text-slate-400">Skills</p>
+          <div className="flex flex-wrap gap-2">
+            {workerProfile.skills.map((skill) => (
+              <span
+                key={skill}
+                className="inline-block rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700"
+              >
+                {skill}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {workerProfile?.certifications && workerProfile.certifications.length > 0 && (
+        <div className="mb-4">
+          <p className="mb-2 text-xs font-medium uppercase text-slate-400">Certifications</p>
+          <div className="space-y-1">
+            {(workerProfile.certifications as Certification[]).map((cert) => (
+              <div key={cert.name} className="text-sm text-slate-900">
+                {cert.name}
+                {cert.issuer && <span className="text-slate-500"> • {cert.issuer}</span>}
+                {cert.year && <span className="text-slate-500"> • {cert.year}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {application.cover_note && (
+        <div className="mb-4 rounded-lg bg-slate-50 p-3">
+          <p className="mb-2 text-xs font-medium uppercase text-slate-400">Cover Note</p>
+          <p className="whitespace-pre-line text-sm text-slate-900">{application.cover_note}</p>
+        </div>
+      )}
+    </div>
+  )
+}

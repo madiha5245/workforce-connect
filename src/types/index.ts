@@ -4,6 +4,7 @@ export type VerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED'
 
 export type ApplicationStatus =
   | 'APPLIED'
+  | 'APPROVED'
   | 'SHORTLISTED'
   | 'INTERVIEW'
   | 'HIRED'

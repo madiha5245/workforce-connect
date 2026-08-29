@@ -114,7 +114,7 @@ export function EmployerDashboard() {
                   </p>
                 </div>
                 <Link
-                  to={`/employer/jobs/${job.id}`}
+                  to={`/employer/jobs/${job.id}/applicants`}
                   className="text-sm font-medium text-primary-600 hover:text-primary-700"
                 >
                   View applicants
