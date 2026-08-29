@@ -360,11 +360,21 @@ function ApplicantCard({
 
         {workerProfile?.rating != null && (
           <div>
-            <p className="text-xs font-medium uppercase text-slate-400">Rating</p>
+            <p className="text-xs font-medium uppercase text-slate-400">Overall Rating</p>
             <p className="mt-1 text-sm text-slate-900">
-              {workerProfile.rating} ({workerProfile.rating_count} reviews)
+              {formatRating(workerProfile.rating)} ({workerProfile.rating_count} reviews)
             </p>
           </div>
+        )}
+
+        {workerProfile && (
+          <>
+            <RatingField label="Work Quality" value={workerProfile.work_quality_rating} />
+            <RatingField label="Professionalism" value={workerProfile.professionalism_rating} />
+            <RatingField label="Punctuality" value={workerProfile.punctuality_rating} />
+            <RatingField label="Responsiveness" value={workerProfile.responsiveness_rating} />
+            <RatingField label="Behaviour" value={workerProfile.behaviour_rating} />
+          </>
         )}
       </div>
 
@@ -412,4 +422,17 @@ function ApplicantCard({
       )}
     </div>
   )
+}
+
+function RatingField({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase text-slate-400">{label}</p>
+      <p className="mt-1 text-sm text-slate-900">{formatRating(value)}</p>
+    </div>
+  )
+}
+
+function formatRating(rating: number): string {
+  return Number(rating).toFixed(1)
 }

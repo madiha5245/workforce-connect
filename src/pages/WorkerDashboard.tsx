@@ -46,8 +46,8 @@ export function WorkerDashboard() {
         <StatCard label="Verification" value={workerProfile?.verification_status ?? 'Not set up'} />
         <StatCard label="Trust Score" value={workerProfile ? `${workerProfile.trust_score}` : '—'} />
         <StatCard
-          label="Rating"
-          value={workerProfile ? `${workerProfile.rating} (${workerProfile.rating_count})` : '—'}
+          label="Overall Rating"
+          value={workerProfile ? `${formatRating(workerProfile.rating)} (${workerProfile.rating_count} reviews)` : '—'}
         />
       </div>
 
@@ -67,6 +67,11 @@ export function WorkerDashboard() {
           <p className="text-sm text-slate-500">Loading...</p>
         ) : workerProfile ? (
           <dl className="grid gap-4 sm:grid-cols-2">
+            <Field label="Work Quality" value={formatRating(workerProfile.work_quality_rating)} />
+            <Field label="Professionalism" value={formatRating(workerProfile.professionalism_rating)} />
+            <Field label="Punctuality" value={formatRating(workerProfile.punctuality_rating)} />
+            <Field label="Responsiveness" value={formatRating(workerProfile.responsiveness_rating)} />
+            <Field label="Behaviour" value={formatRating(workerProfile.behaviour_rating)} />
             <Field label="Skills" value={workerProfile.skills?.join(', ') ?? 'Not set'} />
             <Field
               label="Experience"
@@ -123,6 +128,10 @@ export function WorkerDashboard() {
       </div>
     </AppLayout>
   )
+}
+
+function formatRating(rating: number): string {
+  return Number(rating).toFixed(1)
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {

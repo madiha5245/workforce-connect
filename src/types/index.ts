@@ -32,6 +32,11 @@ export interface WorkerProfile {
   trust_score: number
   rating: number
   rating_count: number
+  work_quality_rating: number
+  professionalism_rating: number
+  punctuality_rating: number
+  responsiveness_rating: number
+  behaviour_rating: number
   created_at: string
   updated_at: string
 }
@@ -83,8 +88,12 @@ export interface Rating {
   id: string
   rater_id: string
   ratee_id: string
-  application_id: string | null
-  score: number
+  application_id: string
+  work_quality: number
+  professionalism: number
+  punctuality: number
+  responsiveness: number
+  behaviour: number
   review: string | null
   created_at: string
 }
