@@ -149,6 +149,12 @@ export function WorkerApplicationsPage() {
     )
   }
 
+  const applicationCounts = {
+    applied: applications.filter(({ application }) => application.status === 'APPLIED').length,
+    approved: applications.filter(({ application }) => application.status === 'APPROVED').length,
+    completed: applications.filter(({ application }) => application.status === 'COMPLETED').length,
+  }
+
   return (
     <AppLayout>
       <div className="mb-8">
@@ -162,6 +168,12 @@ export function WorkerApplicationsPage() {
         <p className="mt-1 text-sm text-slate-500">
           Track and manage your submitted job applications
         </p>
+      </div>
+
+      <div className="mb-8 grid grid-cols-3 gap-4">
+        <ApplicationSummaryCard label="Applied" value={applicationCounts.applied} />
+        <ApplicationSummaryCard label="Approved" value={applicationCounts.approved} />
+        <ApplicationSummaryCard label="Completed" value={applicationCounts.completed} />
       </div>
 
       {applications.length === 0 ? (
@@ -182,6 +194,15 @@ export function WorkerApplicationsPage() {
         </div>
       )}
     </AppLayout>
+  )
+}
+
+function ApplicationSummaryCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-slate-200">
+      <p className="text-2xl font-semibold text-slate-900">{value}</p>
+      <p className="mt-1 text-sm text-slate-500">{label}</p>
+    </div>
   )
 }
 
