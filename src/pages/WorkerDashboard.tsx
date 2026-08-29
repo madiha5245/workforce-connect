@@ -43,7 +43,17 @@ export function WorkerDashboard() {
       </div>
 
       <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">Your Profile</h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900">Your Profile</h2>
+          {workerProfile && !loading && (
+            <Link
+              to="/worker/profile"
+              className="text-sm font-medium text-primary-600 hover:text-primary-700"
+            >
+              Edit profile
+            </Link>
+          )}
+        </div>
         {loading ? (
           <p className="text-sm text-slate-500">Loading...</p>
         ) : workerProfile ? (

@@ -5,7 +5,12 @@ import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { WorkerDashboard } from '@/pages/WorkerDashboard'
+import { WorkerProfilePage } from '@/pages/WorkerProfile'
+import { WorkerBrowseJobs } from '@/pages/WorkerBrowseJobs'
+import { JobDetailsPage } from '@/pages/JobDetails'
 import { EmployerDashboard } from '@/pages/EmployerDashboard'
+import { EmployerProfilePage } from '@/pages/EmployerProfile'
+import { PostJobPage } from '@/pages/PostJob'
 import { AdminDashboard } from '@/pages/AdminDashboard'
 
 export default function App() {
@@ -26,10 +31,50 @@ export default function App() {
             }
           />
           <Route
+            path="/worker/profile"
+            element={
+              <ProtectedRoute allowedRoles={['WORKER']}>
+                <WorkerProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/worker/jobs"
+            element={
+              <ProtectedRoute allowedRoles={['WORKER']}>
+                <WorkerBrowseJobs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/worker/jobs/:id"
+            element={
+              <ProtectedRoute allowedRoles={['WORKER']}>
+                <JobDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/employer"
             element={
               <ProtectedRoute allowedRoles={['EMPLOYER']}>
                 <EmployerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employer/profile"
+            element={
+              <ProtectedRoute allowedRoles={['EMPLOYER']}>
+                <EmployerProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employer/jobs/new"
+            element={
+              <ProtectedRoute allowedRoles={['EMPLOYER']}>
+                <PostJobPage />
               </ProtectedRoute>
             }
           />

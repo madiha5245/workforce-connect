@@ -47,6 +47,50 @@ export function EmployerDashboard() {
 
       <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900">Company Information</h2>
+          <Link
+            to="/employer/profile"
+            className="text-sm font-medium text-primary-600 hover:text-primary-700"
+          >
+            Edit profile
+          </Link>
+        </div>
+        {loading ? (
+          <p className="text-sm text-slate-500">Loading...</p>
+        ) : company ? (
+          <dl className="grid gap-4 sm:grid-cols-2">
+            <Field label="Company Name" value={company.company_name ?? 'Not set'} />
+            <Field label="Industry" value={company.industry ?? 'Not set'} />
+            <Field label="Location" value={company.location ?? 'Not set'} />
+            <Field label="Website" value={company.website ? (
+              <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700">
+                {company.website}
+              </a>
+            ) : 'Not set'} />
+            {company.description && (
+              <div className="sm:col-span-2">
+                <dt className="text-xs font-medium uppercase text-slate-400">Description</dt>
+                <dd className="mt-1 text-sm text-slate-900">{company.description}</dd>
+              </div>
+            )}
+          </dl>
+        ) : (
+          <div>
+            <p className="mb-4 text-sm text-slate-500">
+              You haven't set up your company profile yet.
+            </p>
+            <Link
+              to="/employer/profile"
+              className="inline-block rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+            >
+              Create company profile
+            </Link>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+        <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Your Job Posts</h2>
           <Link
             to="/employer/jobs/new"
@@ -89,6 +133,15 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
       <p className="text-sm text-slate-500">{label}</p>
       <p className="mt-1 text-xl font-semibold text-slate-900">{value}</p>
+    </div>
+  )
+}
+
+function Field({ label, value }: { label: string; value: string | React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium uppercase text-slate-400">{label}</dt>
+      <dd className="mt-1 text-sm text-slate-900">{value}</dd>
     </div>
   )
 }
