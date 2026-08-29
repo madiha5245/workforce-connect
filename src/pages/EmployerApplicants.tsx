@@ -337,8 +337,6 @@ function ApplicantCard({
     })
   }
 
-  const showContactInfo = application.status === 'APPROVED'
-
   return (
     <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
       {approvalMessage && (
@@ -358,26 +356,20 @@ function ApplicantCard({
           <h3 className="text-lg font-semibold text-slate-900">
             {profile?.full_name || 'Unknown Worker'}
           </h3>
-          {showContactInfo ? (
-            <div className="mt-1 space-y-0.5">
-              {profile?.email && (
-                <p className="text-sm text-slate-500">
-                  <span className="font-medium text-slate-600">Email:</span> {profile.email}
-                </p>
-              )}
-              {profile?.phone ? (
-                <p className="text-sm text-slate-500">
-                  <span className="font-medium text-slate-600">Phone:</span> {profile.phone}
-                </p>
-              ) : (
-                <p className="text-xs italic text-slate-400">No phone number provided</p>
-              )}
-            </div>
-          ) : (
-            <p className="mt-1 text-xs italic text-slate-400">
-              Contact information hidden until application is approved
-            </p>
-          )}
+          <div className="mt-1 space-y-0.5">
+            {profile?.email && (
+              <p className="text-sm text-slate-500">
+                <span className="font-medium text-slate-600">Email:</span> {profile.email}
+              </p>
+            )}
+            {profile?.phone ? (
+              <p className="text-sm text-slate-500">
+                <span className="font-medium text-slate-600">Phone:</span> {profile.phone}
+              </p>
+            ) : (
+              <p className="text-xs italic text-slate-400">No phone number provided</p>
+            )}
+          </div>
           <p className="mt-1 text-xs text-slate-400">Applied {formatDate(application.created_at)}</p>
         </div>
         <div className="flex items-center gap-3">
