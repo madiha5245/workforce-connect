@@ -338,11 +338,7 @@ function ApplicantCard({
                   <span className="font-medium text-slate-600">Email:</span> {profile.email}
                 </p>
               )}
-              {workerProfile?.phone ? (
-                <p className="text-sm text-slate-500">
-                  <span className="font-medium text-slate-600">Phone:</span> {workerProfile.phone}
-                </p>
-              ) : profile?.phone ? (
+              {profile?.phone ? (
                 <p className="text-sm text-slate-500">
                   <span className="font-medium text-slate-600">Phone:</span> {profile.phone}
                 </p>

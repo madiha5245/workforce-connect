@@ -41,29 +41,39 @@ export function WorkerProfilePage() {
       if (!profile) return
       setLoading(true)
       try {
-        const { data, error } = await supabase
-          .from('worker_profiles')
-          .select('*')
-          .eq('profile_id', profile.id)
-          .maybeSingle()
+        const [{ data: workerData, error: workerError }, { data: profileData, error: profileError }] =
+          await Promise.all([
+            supabase
+              .from('worker_profiles')
+              .select('*')
+              .eq('profile_id', profile.id)
+              .maybeSingle(),
+            supabase
+              .from('profiles')
+              .select('phone')
+              .eq('id', profile.id)
+              .maybeSingle(),
+          ])
 
-        if (error) throw error
+        if (workerError) throw workerError
+        if (profileError) throw profileError
 
-        if (data) {
-          setFormData({
-            skills: data.skills || [],
-            years_of_experience: data.years_of_experience,
-            location: data.location || '',
-            phone: data.phone || '',
-            availability: data.availability || '',
-            expected_salary: data.expected_salary,
-            certifications: data.certifications || [],
-          })
-        }
-      } catch (err) {
+        setFormData({
+          skills: workerData?.skills || [],
+          years_of_experience: workerData?.years_of_experience ?? null,
+          location: workerData?.location || '',
+          phone: profileData?.phone ?? profile.phone ?? '',
+          availability: workerData?.availability || '',
+          expected_salary: workerData?.expected_salary ?? null,
+          certifications: workerData?.certifications || [],
+        })
+      } catch (err: any) {
+        const errorMsg =
+          err?.message ||
+          (err instanceof Error ? err.message : 'Failed to load profile')
         setMessage({
           type: 'error',
-          text: err instanceof Error ? err.message : 'Failed to load profile',
+          text: errorMsg,
         })
       } finally {
         setLoading(false)
@@ -89,7 +99,18 @@ export function WorkerProfilePage() {
     setMessage(null)
 
     try {
-      const { error } = await supabase
+      // 1. Update phone in profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          phone: formData.phone.trim() || null,
+        })
+        .eq('id', profile.id)
+
+      if (profileError) throw profileError
+
+      // 2. Upsert worker qualifications in worker_profiles table
+      const { error: workerError } = await supabase
         .from('worker_profiles')
         .upsert(
           {
@@ -97,7 +118,6 @@ export function WorkerProfilePage() {
             skills: formData.skills.length > 0 ? formData.skills : null,
             years_of_experience: formData.years_of_experience,
             location: formData.location || null,
-            phone: formData.phone.trim() || null,
             availability: formData.availability || null,
             expected_salary: formData.expected_salary,
             certifications:
@@ -110,7 +130,7 @@ export function WorkerProfilePage() {
         .select()
         .single()
 
-      if (error) throw error
+      if (workerError) throw workerError
 
       setMessage({
         type: 'success',
@@ -119,10 +139,13 @@ export function WorkerProfilePage() {
 
       // Clear message after 3 seconds
       setTimeout(() => setMessage(null), 3000)
-    } catch (err) {
+    } catch (err: any) {
+      const errorMsg =
+        err?.message ||
+        (err instanceof Error ? err.message : 'Failed to save profile')
       setMessage({
         type: 'error',
-        text: err instanceof Error ? err.message : 'Failed to save profile',
+        text: errorMsg,
       })
     } finally {
       setSaving(false)

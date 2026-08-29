@@ -8,20 +8,29 @@ import type { WorkerProfile } from '@/types'
 export function WorkerDashboard() {
   const { profile } = useAuth()
   const [workerProfile, setWorkerProfile] = useState<WorkerProfile | null>(null)
+  const [phone, setPhone] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!profile) return
-    supabase
-      .from('worker_profiles')
-      .select('*')
-      .eq('profile_id', profile.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) console.error(error.message)
-        setWorkerProfile(data as WorkerProfile | null)
-        setLoading(false)
-      })
+    Promise.all([
+      supabase
+        .from('worker_profiles')
+        .select('*')
+        .eq('profile_id', profile.id)
+        .maybeSingle(),
+      supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', profile.id)
+        .maybeSingle(),
+    ]).then(([{ data: workerData, error: workerErr }, { data: profData, error: profErr }]) => {
+      if (workerErr) console.error(workerErr.message)
+      if (profErr) console.error(profErr.message)
+      setWorkerProfile(workerData as WorkerProfile | null)
+      setPhone(profData?.phone ?? profile.phone ?? null)
+      setLoading(false)
+    })
   }, [profile])
 
   return (
@@ -68,7 +77,7 @@ export function WorkerDashboard() {
               }
             />
             <Field label="Location" value={workerProfile.location ?? 'Not set'} />
-            <Field label="Phone" value={workerProfile.phone ?? 'Not set'} />
+            <Field label="Phone" value={phone ?? 'Not set'} />
             <Field label="Availability" value={workerProfile.availability ?? 'Not set'} />
             <Field
               label="Expected Salary"
