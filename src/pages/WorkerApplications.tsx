@@ -200,6 +200,11 @@ function ApplicationCard({ item }: { item: WorkerApplicationItem }) {
           label: 'Approved',
           className: 'bg-green-50 text-green-700 ring-1 ring-green-600/20',
         }
+      case 'COMPLETED':
+        return {
+          label: 'Completed',
+          className: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+        }
       case 'REJECTED':
         return {
           label: 'Rejected',
@@ -239,6 +244,15 @@ function ApplicationCard({ item }: { item: WorkerApplicationItem }) {
 
   const statusInfo = getStatusBadge(application.status)
 
+  const formatSalary = (min: number | null, max: number | null): string => {
+    if (min != null && max != null) {
+      return `₹${min.toLocaleString('en-IN')} - ₹${max.toLocaleString('en-IN')}`
+    }
+    if (min != null) return `₹${min.toLocaleString('en-IN')}+`
+    if (max != null) return `Up to ₹${max.toLocaleString('en-IN')}`
+    return 'Not specified'
+  }
+
   return (
     <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 transition hover:ring-primary-300">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -249,9 +263,18 @@ function ApplicationCard({ item }: { item: WorkerApplicationItem }) {
           <p className="text-sm font-medium text-slate-600">
             {companyName || 'Company'}
           </p>
-          <p className="mt-2 text-xs text-slate-500">
-            Applied: {formatDate(application.created_at)}
-          </p>
+          <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+            <p className="text-slate-600">
+              <span className="font-medium text-slate-700">Location:</span> {job?.location || 'Not specified'}
+            </p>
+            <p className="text-slate-600">
+              <span className="font-medium text-slate-700">Salary:</span>{' '}
+              {job ? formatSalary(job.salary_min, job.salary_max) : 'Not specified'}
+            </p>
+            <p className="text-slate-600">
+              <span className="font-medium text-slate-700">Applied:</span> {formatDate(application.created_at)}
+            </p>
+          </div>
           <div className="mt-3 flex items-center gap-2 text-xs">
             <span className="font-medium text-slate-500">Status:</span>
             <span
@@ -261,14 +284,16 @@ function ApplicationCard({ item }: { item: WorkerApplicationItem }) {
             </span>
           </div>
         </div>
-        <div>
-          <Link
-            to={`/worker/jobs/${application.job_id}`}
-            className="inline-block rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700"
-          >
-            View Job Details
-          </Link>
-        </div>
+        {application.status !== 'COMPLETED' && (
+          <div>
+            <Link
+              to={`/worker/jobs/${application.job_id}`}
+              className="inline-block rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700"
+            >
+              View Job Details
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -204,6 +204,17 @@ function ApplicantCard({
     type: 'success' | 'error'
     text: string
   } | null>(null)
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false)
+  const [submittingCompletion, setSubmittingCompletion] = useState(false)
+  const [completionError, setCompletionError] = useState<string | null>(null)
+  const [completionComment, setCompletionComment] = useState('')
+  const [completionRatings, setCompletionRatings] = useState({
+    work_quality: 0,
+    professionalism: 0,
+    punctuality: 0,
+    responsiveness: 0,
+    behaviour: 0,
+  })
 
   async function handleApprove() {
     setApproving(true)
@@ -241,12 +252,67 @@ function ApplicantCard({
     }
   }
 
+  function openCompletionDialog() {
+    setCompletionRatings({
+      work_quality: 0,
+      professionalism: 0,
+      punctuality: 0,
+      responsiveness: 0,
+      behaviour: 0,
+    })
+    setCompletionComment('')
+    setCompletionError(null)
+    setShowCompletionDialog(true)
+  }
+
+  async function handleCompleteAndSubmit() {
+    if (Object.values(completionRatings).some((rating) => rating < 1 || rating > 5)) {
+      setCompletionError('Please provide all five ratings.')
+      return
+    }
+
+    setSubmittingCompletion(true)
+    setCompletionError(null)
+
+    try {
+      const { error } = await supabase.rpc('complete_and_rate_application', {
+        p_application_id: application.id,
+        p_work_quality: completionRatings.work_quality,
+        p_professionalism: completionRatings.professionalism,
+        p_punctuality: completionRatings.punctuality,
+        p_responsiveness: completionRatings.responsiveness,
+        p_behaviour: completionRatings.behaviour,
+        p_review: completionComment.trim() || null,
+      })
+
+      if (error) throw error
+
+      onApprovalStatusChange({
+        ...application,
+        status: 'COMPLETED',
+        updated_at: new Date().toISOString(),
+      })
+      setShowCompletionDialog(false)
+      setApprovalMessage({
+        type: 'success',
+        text: 'Work completed and rating submitted successfully.',
+      })
+      setTimeout(() => setApprovalMessage(null), 3000)
+    } catch (err) {
+      setCompletionError(err instanceof Error ? err.message : 'Failed to complete and rate work')
+    } finally {
+      setSubmittingCompletion(false)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'APPLIED':
         return 'bg-blue-50 text-blue-700'
       case 'APPROVED':
         return 'bg-green-50 text-green-700'
+      case 'COMPLETED':
+        return 'bg-emerald-50 text-emerald-700'
       case 'SHORTLISTED':
         return 'bg-purple-50 text-purple-700'
       case 'INTERVIEW':
@@ -329,6 +395,14 @@ function ApplicantCard({
               className="rounded-lg bg-primary-600 px-3 py-1 text-xs font-medium text-white hover:bg-primary-700 disabled:opacity-50"
             >
               {approving ? 'Approving...' : 'Approve'}
+            </button>
+          )}
+          {application.status === 'APPROVED' && (
+            <button
+              onClick={openCompletionDialog}
+              className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+            >
+              Work Done
             </button>
           )}
         </div>
@@ -420,6 +494,109 @@ function ApplicantCard({
           <p className="whitespace-pre-line text-sm text-slate-900">{application.cover_note}</p>
         </div>
       )}
+
+      {showCompletionDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="complete-work-title"
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <h2 id="complete-work-title" className="text-xl font-semibold text-slate-900">
+              Complete Work &amp; Rate
+            </h2>
+            <div className="mt-5 space-y-4">
+              <RatingInput
+                label="Work Quality"
+                value={completionRatings.work_quality}
+                onChange={(value) => setCompletionRatings((current) => ({ ...current, work_quality: value }))}
+              />
+              <RatingInput
+                label="Professionalism"
+                value={completionRatings.professionalism}
+                onChange={(value) => setCompletionRatings((current) => ({ ...current, professionalism: value }))}
+              />
+              <RatingInput
+                label="Punctuality"
+                value={completionRatings.punctuality}
+                onChange={(value) => setCompletionRatings((current) => ({ ...current, punctuality: value }))}
+              />
+              <RatingInput
+                label="Responsiveness"
+                value={completionRatings.responsiveness}
+                onChange={(value) => setCompletionRatings((current) => ({ ...current, responsiveness: value }))}
+              />
+              <RatingInput
+                label="Behaviour"
+                value={completionRatings.behaviour}
+                onChange={(value) => setCompletionRatings((current) => ({ ...current, behaviour: value }))}
+              />
+              <div>
+                <label htmlFor={`review-${application.id}`} className="mb-1 block text-sm font-medium text-slate-700">
+                  Optional Comment
+                </label>
+                <textarea
+                  id={`review-${application.id}`}
+                  value={completionComment}
+                  onChange={(event) => setCompletionComment(event.target.value)}
+                  rows={4}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+            {completionError && <p className="mt-4 text-sm text-error-600">{completionError}</p>}
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCompletionDialog(false)}
+                disabled={submittingCompletion}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleCompleteAndSubmit}
+                disabled={submittingCompletion}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {submittingCompletion ? 'Submitting...' : 'Complete & Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RatingInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: number
+  onChange: (value: number) => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <div className="flex" aria-label={`${label} rating`}>
+        {[1, 2, 3, 4, 5].map((rating) => (
+          <button
+            key={rating}
+            type="button"
+            aria-label={`${rating} star${rating === 1 ? '' : 's'}`}
+            aria-pressed={rating === value}
+            onClick={() => onChange(rating)}
+            className={`px-0.5 text-2xl leading-none ${rating <= value ? 'text-amber-400' : 'text-slate-300'}`}
+          >
+            {rating <= value ? '★' : '☆'}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
